@@ -1,0 +1,6 @@
+/libs
+/out
+*.class
+*.iml
+*.idea
+*.db
