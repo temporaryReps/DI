@@ -13,12 +13,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Context {
+public class Context<T> {
     public static final String TAG_BEAN = "bean";
     public static final String TAG_PROPERTY = "property";
-    private Map<String, Object> objectsById = new HashMap<>();
+    private Map<String, T> objectsById = new HashMap<>();
     private List<Bean> beans = new ArrayList<>();
-    private Map<String, Object> objectsByClassName = new HashMap<>();
+    private Map<String, T> objectsByClassName = new HashMap<>();
+
     public Context(String xmlPath) {
         // парсинг xml -- заполнение beans
         try {
@@ -113,8 +114,8 @@ public class Context {
 
     private void instantiateBeans() throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchFieldException, InvalidConfigurationException {
         for (Bean bean : beans) {
-            Class<?> aClass = Class.forName(bean.getClassName());
-            Object ob = aClass.newInstance();
+            Class<T> aClass = (Class<T>) Class.forName(bean.getClassName());
+            T ob = aClass.newInstance();
 
             processAnnotation(aClass, ob);
 
@@ -150,7 +151,7 @@ public class Context {
         }
     }
 
-    private void processAnnotation(Class<?> clazz, Object instance) throws InvalidConfigurationException, IllegalAccessException {
+    private void processAnnotation(Class<T> clazz, T instance) throws InvalidConfigurationException, IllegalAccessException {
         Field[] fields = clazz.getDeclaredFields();
         for (Field field : fields) {
             if (field.isAnnotationPresent(Auto.class)) {
@@ -187,11 +188,11 @@ public class Context {
         }
     }
 
-    private Field getField(Class<?> aClass, String fieldName) throws NoSuchFieldException {
+    private Field getField(Class<T> aClass, String fieldName) throws NoSuchFieldException {
         try {
             return aClass.getDeclaredField(fieldName); // java.lang.NoSuchFieldException: count
         } catch (NoSuchFieldException e) {
-            Class<?> superclass = aClass.getSuperclass();
+            Class<T> superclass = (Class<T>) aClass.getSuperclass();
             if (superclass == null) {
                 throw e;
             } else {
@@ -201,7 +202,7 @@ public class Context {
 //        return aClass.getField(fieldName); // java.lang.NoSuchFieldException: power
     }
 
-    public Object getBean(String beanId) {
+    public T getBean(String beanId) {
         // возвращает уже созданный и настроенный экземпляр класса (бин)
         return objectsById.get(beanId);
     }
