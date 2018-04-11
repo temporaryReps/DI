@@ -8,6 +8,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -16,9 +17,9 @@ import java.util.Map;
 public class Context<T> {
     public static final String TAG_BEAN = "bean";
     public static final String TAG_PROPERTY = "property";
-    private Map<String, T> objectsById = new HashMap<>();
+    private Map<String, Object> objectsById = new HashMap<>();
     private List<Bean> beans = new ArrayList<>();
-    private Map<String, T> objectsByClassName = new HashMap<>();
+    private Map<String, Object> objectsByClassName = new HashMap<>();
 
     public Context(String xmlPath) {
         // парсинг xml -- заполнение beans
@@ -114,8 +115,8 @@ public class Context<T> {
 
     private void instantiateBeans() throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchFieldException, InvalidConfigurationException {
         for (Bean bean : beans) {
-            Class<T> aClass = (Class<T>) Class.forName(bean.getClassName());
-            T ob = aClass.newInstance();
+            Class<?> aClass = Class.forName(bean.getClassName());
+            Object ob = aClass.newInstance();
 
             processAnnotation(aClass, ob);
 
@@ -151,7 +152,8 @@ public class Context<T> {
         }
     }
 
-    private void processAnnotation(Class<T> clazz, T instance) throws InvalidConfigurationException, IllegalAccessException {
+    private void processAnnotation(Class<?> clazz, Object instance) throws InvalidConfigurationException, IllegalAccessException, ClassNotFoundException {
+
         Field[] fields = clazz.getDeclaredFields();
         for (Field field : fields) {
             if (field.isAnnotationPresent(Auto.class)) {
@@ -159,10 +161,11 @@ public class Context<T> {
                 if (auto.isRequired() && !objectsByClassName.containsKey(field.getType().getName())) {
                     throw new InvalidConfigurationException("Failed @Auto " + field.getName() + " " + field.getType());
                 } else {
-                    if (objectsByClassName.containsKey(field.getType().getName())) {
-                        Object o = objectsByClassName.get(field.getType().getName());
-                        field.setAccessible(true);
-                        field.set(instance, o);
+                    for (Object value : objectsByClassName.values()) {
+                        if (field.getType().isInstance(value)) {
+                            field.setAccessible(true);
+                            field.set(instance, value);
+                        }
                     }
                 }
             }
@@ -183,27 +186,28 @@ public class Context<T> {
             case "boolean":
             case "Boolean":
                 return Boolean.valueOf(value);
+            case "java.lang.String":
+                return value;
             default:
                 throw new InvalidConfigurationException(typeName);
         }
     }
 
-    private Field getField(Class<T> aClass, String fieldName) throws NoSuchFieldException {
+    private Field getField(Class<?> aClass, String fieldName) throws NoSuchFieldException {
         try {
             return aClass.getDeclaredField(fieldName); // java.lang.NoSuchFieldException: count
         } catch (NoSuchFieldException e) {
-            Class<T> superclass = (Class<T>) aClass.getSuperclass();
+            Class<?> superclass = aClass.getSuperclass();
             if (superclass == null) {
                 throw e;
             } else {
                 return getField(superclass, fieldName);
             }
         }
-//        return aClass.getField(fieldName); // java.lang.NoSuchFieldException: power
     }
 
     public T getBean(String beanId) {
         // возвращает уже созданный и настроенный экземпляр класса (бин)
-        return objectsById.get(beanId);
+        return (T) objectsById.get(beanId);
     }
 }
