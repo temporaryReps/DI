@@ -68,7 +68,7 @@ public class Context<T> {
         Class<?> aClass = Class.forName(bean.getClassName());
         Object ob = aClass.newInstance();
 
-            processAnnotation(aClass, ob);
+        processAnnotation(aClass, ob);
 
         // настройка
         for (String id : bean.getProperties().keySet()) {
@@ -121,7 +121,6 @@ public class Context<T> {
             Node bean = nodes.item(i);
             if (TAG_BEAN.equals(bean.getNodeName())) {
                 parseBean(bean);
-//                parseBean(bean, nodes);
             }
         }
     }
@@ -163,7 +162,7 @@ public class Context<T> {
         }
     }
 
-    private void processAnnotation(Class<?> clazz, Object instance) throws InvalidConfigurationException, IllegalAccessException, ClassNotFoundException {
+    private void processAnnotation(Class<?> clazz, Object instance) throws InvalidConfigurationException, IllegalAccessException, ClassNotFoundException, NoSuchFieldException, InstantiationException {
 
         Field[] fields = clazz.getDeclaredFields();
         for (Field field : fields) {
@@ -172,10 +171,22 @@ public class Context<T> {
                 if (auto.isRequired() && !objectsByClassName.containsKey(field.getType().getName())) {
                     throw new InvalidConfigurationException("Failed @Auto " + field.getName() + " " + field.getType());
                 } else {
-                    for (Object value : objectsByClassName.values()) {
-                        if (field.getType().isInstance(value)) {
+                    // solution of first task
+//                    for (Object value : objectsByClassName.values()) {
+//                        if (field.getType().isInstance(value)) {
+//                            field.setAccessible(true);
+//                            field.set(instance, value);
+//                        }
+//                    }
+
+                    //solution of second task
+                    for (Bean bean : beans) {
+                        Class c = Class.forName(bean.getClassName());
+                        Object o = c.newInstance();
+                        if (field.getType().isInstance(o)) {
+                            Object ob = instanteBean(bean);
                             field.setAccessible(true);
-                            field.set(instance, value);
+                            field.set(instance, ob);
                         }
                     }
                 }

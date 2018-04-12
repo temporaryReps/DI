@@ -3,9 +3,9 @@ package io.khasang.reflection;
 import io.khasang.reflection.di.Auto;
 
 public class Car {
-//    @Auto
+    @Auto
     private Engine engine;
-//    @Auto
+    @Auto
     private Gear gear;
 
     public Car() {
