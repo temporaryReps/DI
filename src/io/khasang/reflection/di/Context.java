@@ -43,7 +43,9 @@ public class Context<T> {
         // можно создать экземпляры на основе beans
         // beans -> objectsById
         try {
-            instantiateBeans();
+            for (Bean bean : beans) {
+                instanteBean(bean);
+            }
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         } catch (InstantiationException e) {
@@ -55,6 +57,55 @@ public class Context<T> {
         } catch (InvalidConfigurationException e) {
             e.printStackTrace();
         }
+    }
+
+    public T getBean(String beanId) {
+        // возвращает уже созданный и настроенный экземпляр класса (бин)
+        return (T) objectsById.get(beanId);
+    }
+
+    private Object instanteBean(Bean bean) throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchFieldException, InvalidConfigurationException {
+        Class<?> aClass = Class.forName(bean.getClassName());
+        Object ob = aClass.newInstance();
+
+            processAnnotation(aClass, ob);
+
+        // настройка
+        for (String id : bean.getProperties().keySet()) {
+            Field field = getField(aClass, id);
+            if (field == null) {
+                throw new InvalidConfigurationException("Failded to set field " + id + " for class: " + aClass.getName());
+            }
+            field.setAccessible(true);
+
+            Property property = bean.getProperties().get(id);
+
+            switch (property.getType()) {
+                case VALUE:
+                    field.set(ob, convert(field.getType().getName(), property.getValue()));
+                    break;
+                case REF:
+                    String refName = property.getValue();
+                    if (objectsById.containsKey(refName)) {
+                        field.set(ob, objectsById.get(refName));
+                    } else {
+                        for (Bean b : beans) {
+                            if (b.getId().equals(refName)) {
+                                Object o = instanteBean(b);
+                                field.set(ob, o);
+                            }
+                        }
+                    }
+                    break;
+                default:
+                    throw new InvalidConfigurationException("Type error");
+            }
+        }
+
+        objectsById.put(bean.getId(), ob);
+        objectsByClassName.put(bean.getClassName(), ob);
+
+        return ob;
     }
 
     private void parseOurXml(String xmlPath) throws ParserConfigurationException, IOException, SAXException, InvalidConfigurationException {
@@ -70,6 +121,7 @@ public class Context<T> {
             Node bean = nodes.item(i);
             if (TAG_BEAN.equals(bean.getNodeName())) {
                 parseBean(bean);
+//                parseBean(bean, nodes);
             }
         }
     }
@@ -79,7 +131,6 @@ public class Context<T> {
         Node id = attributes.getNamedItem("id");
         String idVal = id.getNodeValue();
         String classVal = attributes.getNamedItem("class").getNodeValue();
-//        System.out.printf("id: %s, class: %s %n", idVal, classVal);
 
         Map<String, Property> properties = new HashMap<>();
         NodeList nodes = bean.getChildNodes();
@@ -88,7 +139,6 @@ public class Context<T> {
             if (TAG_PROPERTY.equals(node.getNodeName())) {
                 Property property = parseProperty(node);
                 properties.put(property.getName(), property);
-//                System.out.printf("Propery: %s %n", property);
             }
         }
 
@@ -110,45 +160,6 @@ public class Context<T> {
             } else {
                 return new Property(name, ref.getNodeValue(), ValueType.REF);
             }
-        }
-    }
-
-    private void instantiateBeans() throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchFieldException, InvalidConfigurationException {
-        for (Bean bean : beans) {
-            Class<?> aClass = Class.forName(bean.getClassName());
-            Object ob = aClass.newInstance();
-
-            processAnnotation(aClass, ob);
-
-            // настройка
-            for (String id : bean.getProperties().keySet()) {
-                Field field = getField(aClass, id);
-                if (field == null) {
-                    throw new InvalidConfigurationException("Failded to set field " + id + " for class: " + aClass.getName());
-                }
-                field.setAccessible(true);
-
-                Property property = bean.getProperties().get(id);
-
-                switch (property.getType()) {
-                    case VALUE:
-                        field.set(ob, convert(field.getType().getName(), property.getValue()));
-                        break;
-                    case REF:
-                        String refName = property.getValue();
-                        if (objectsById.containsKey(refName)) {
-                            field.set(ob, objectsById.get(refName));
-                        } else {
-                            throw new InvalidConfigurationException("Failed instantiate bean, ref: " + id);
-                        }
-                        break;
-                    default:
-                        throw new InvalidConfigurationException("Type error");
-                }
-            }
-
-            objectsById.put(bean.getId(), ob);
-            objectsByClassName.put(bean.getClassName(), ob);
         }
     }
 
@@ -204,10 +215,5 @@ public class Context<T> {
                 return getField(superclass, fieldName);
             }
         }
-    }
-
-    public T getBean(String beanId) {
-        // возвращает уже созданный и настроенный экземпляр класса (бин)
-        return (T) objectsById.get(beanId);
     }
 }
