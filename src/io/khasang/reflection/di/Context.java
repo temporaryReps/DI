@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Context<T> {
+public class Context {
     public static final String TAG_BEAN = "bean";
     public static final String TAG_PROPERTY = "property";
     private Map<String, Object> objectsById = new HashMap<>();
@@ -25,18 +25,8 @@ public class Context<T> {
         // парсинг xml -- заполнение beans
         try {
             parseOurXml(xmlPath);
-        } catch (ParserConfigurationException e) {
+        } catch (Exception e) {
             e.printStackTrace();
-            return;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
-        } catch (SAXException e) {
-            e.printStackTrace();
-            return;
-        } catch (InvalidConfigurationException e) {
-            e.printStackTrace();
-            return;
         }
 
         // когда прочитали xml и все о конфигурации теперь знаем
@@ -46,20 +36,12 @@ public class Context<T> {
             for (Bean bean : beans) {
                 instanteBean(bean);
             }
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (NoSuchFieldException e) {
-            e.printStackTrace();
-        } catch (InvalidConfigurationException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public T getBean(String beanId) {
+    public <T> T getBean(String beanId) {
         // возвращает уже созданный и настроенный экземпляр класса (бин)
         return (T) objectsById.get(beanId);
     }

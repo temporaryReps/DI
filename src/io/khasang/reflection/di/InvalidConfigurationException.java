@@ -1,6 +1,6 @@
 package io.khasang.reflection.di;
 
-public class InvalidConfigurationException extends Throwable {
+public class InvalidConfigurationException extends Exception {
     public InvalidConfigurationException(String message) {
         super(message);
     }
