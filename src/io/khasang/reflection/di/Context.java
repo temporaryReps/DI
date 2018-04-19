@@ -9,10 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Context {
     public static final String TAG_BEAN = "bean";
@@ -50,7 +47,7 @@ public class Context {
         Class<?> aClass = Class.forName(bean.getClassName());
         Object ob = aClass.newInstance();
 
-        processAnnotation(aClass, ob);
+//        processAnnotation(aClass, ob);
 
         // настройка
         for (String id : bean.getProperties().keySet()) {
@@ -69,10 +66,12 @@ public class Context {
                 case REF:
                     String refName = property.getValue();
                     if (objectsById.containsKey(refName)) {
+                        checkCrossRef(refName, bean.getId());
                         field.set(ob, objectsById.get(refName));
                     } else {
                         for (Bean b : beans) {
                             if (b.getId().equals(refName)) {
+                                checkCrossRef(refName, bean.getId());
                                 Object o = instanteBean(b);
                                 field.set(ob, o);
                             }
@@ -88,6 +87,32 @@ public class Context {
         objectsByClassName.put(bean.getClassName(), ob);
 
         return ob;
+    }
+
+    private void checkCrossRef(String className, String parentId) throws ClassNotFoundException, InvalidConfigurationException {
+
+        Bean bean = null;
+        for (Bean b : beans) {
+            if (b.getId().equals(className)) {
+                bean = b;
+            }
+        }
+
+        Class<?> clazz = Class.forName(bean.getClassName());
+        try {
+            getField(clazz, parentId);
+            throw new InvalidConfigurationException("cross reference to " + parentId);
+        } catch (NoSuchFieldException ex) {
+            Field[] fields = clazz.getDeclaredFields();
+            for (Field f : fields) {
+                if (f.getType().isPrimitive()) {
+                    continue;
+                }
+
+                String fieldName = f.getName();
+                checkCrossRef(fieldName, parentId);
+            }
+        }
     }
 
     private void parseOurXml(String xmlPath) throws ParserConfigurationException, IOException, SAXException, InvalidConfigurationException {
