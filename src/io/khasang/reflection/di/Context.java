@@ -98,10 +98,15 @@ public class Context {
             }
         }
 
+        if (bean == null) {
+            return;
+        }
+
         Class<?> clazz = Class.forName(bean.getClassName());
         try {
             getField(clazz, parentId);
-            throw new InvalidConfigurationException("cross reference to " + parentId);
+            throw new InvalidConfigurationException("cross reference to " + parentId
+                    + " into " + className);
         } catch (NoSuchFieldException ex) {
             Field[] fields = clazz.getDeclaredFields();
             for (Field f : fields) {
