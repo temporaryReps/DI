@@ -7,7 +7,5 @@
         <property name="count" val="2"/>
     </bean>
     <bean id="car" class="io.khasang.reflection.Car">
-        <!--<property name="engine" ref="engine"/>-->
-        <!--<property name="gear" ref="gear"/>-->
     </bean>
 </root>
