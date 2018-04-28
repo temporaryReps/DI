@@ -3,10 +3,12 @@ package io.khasang.reflection;
 import io.khasang.reflection.di.Auto;
 
 public class Car {
-    @Auto
+//    @Auto
     private Engine engine;
-    @Auto
+//    @Auto
     private Gear gear;
+
+    private Owner owner;
 
     public Car() {
     }
@@ -27,11 +29,20 @@ public class Car {
         this.gear = gear;
     }
 
+    public Owner getOwner() {
+        return owner;
+    }
+
+    public void setOwner(Owner owner) {
+        this.owner = owner;
+    }
+
     @Override
     public String toString() {
         return "Car{" +
                 "engine=" + engine +
                 ", gear=" + gear +
+                ", owner=" + owner +
                 '}';
     }
 }
